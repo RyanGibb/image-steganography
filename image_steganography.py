@@ -39,7 +39,7 @@ def conceal_binary_in_image(img, binary, color_bits_changed):
 
 def unconceal_text_in_image(input_path, chars_to_look_for=0, bits_per_char=8, color_bits_changed=1):
     img = cv2.imread(input_path)
-    binary = unconceal_binary_in_image(img, chars_to_look_for * bits_per_char)
+    binary = unconceal_binary_in_image(img, chars_to_look_for * bits_per_char, color_bits_changed)
     print(get_text_from_binary(binary, bits_per_char))
 
 
@@ -74,6 +74,6 @@ if __name__ == "__main__":
                                                          "actor, widely regarded as both the greatest writer in the "
                                                          "English language, and the world's pre-eminent dramatist. "
                                                          "He is often called England's national poet, and the Bard of "
-                                                         "Avon.")
-    unconceal_text_in_image("download.png", 100, 7)
+                                                         "Avon.", 4)
+    unconceal_text_in_image("download.png", 100, 7, 4)
 
