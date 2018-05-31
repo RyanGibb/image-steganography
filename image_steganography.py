@@ -2,17 +2,21 @@ import cv2
 
 
 def conceal_text_in_img(input_path, output_path, text, color_bits_changed=1):
-    list_binary = get_binary_from_text(text)
+    binary = get_binary_from_text(text)
     img = cv2.imread(input_path)
-    img = conceal_binary_in_image(img, list_binary, color_bits_changed)
+    img = conceal_binary_in_image(img, binary, color_bits_changed)
     cv2.imwrite(output_path, img)
 
 
 def get_binary_from_text(text):
     print("Number of characters: " + str(len(text)))
+    # Converts the text into a list of binary values. ord gets the unicode value, bin gets the number as a binary string
+    #   [2:] removes the "0b" from the start of the number, which is done as all of the numbers will be positive
     array_of_char_binary_values = [bin(ord(c))[2:] for c in text]
+    # Sets the number of bits per character to the length of the longest binary number
     bits_per_char = len(max(array_of_char_binary_values, key=len))
     print("Bits per character: " + str(bits_per_char))
+    # zfill adds leading zeros if the binary number is the wrong length, and they are joined to give a continuous string
     binary = "".join([b.zfill(bits_per_char) for b in array_of_char_binary_values])
     return binary
 
@@ -26,9 +30,13 @@ def conceal_binary_in_image(img, binary, color_bits_changed):
     for y in range(height):
         for x in range(width):
             for channel in range(channels):
-                # color is a list of binary digits
+                # Color is a list of binary digits
+                #   [2:] removes the leaving "0b", as all values will be positive
+                #   zfill adds the required amount of leading 0's, so color[-color_bits_changed:] works
                 color = list(bin(img.item(y, x, channel))[2:].zfill(color_bits_changed))
+                # Changes the last number of binary digits of color to a section of the binary_list
                 color[-color_bits_changed:] = binary_list[binary_index:binary_index + color_bits_changed]
+                # Calculates the new integer color value
                 new_color = int("".join(color), 2)
                 img.itemset(y, x, channel, new_color)
                 binary_index += color_bits_changed
@@ -44,7 +52,7 @@ def unconceal_text_in_image(input_path, chars_to_look_for=0, bits_per_char=8, co
 
 
 def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_changed=1):
-    # Starts at 1 so if binary_values_to_look_for=0, all the values are found
+    # Starts at 1 so if binary_values_to_look_for=0 (the default) all the binary values are returned
     values_found = 1
     binary_list = []
     height = img.shape[0]
@@ -53,8 +61,11 @@ def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_chang
     for y in range(height):
         for x in range(width):
             for channel in range(channels):
+                # Color is a list of binary digits. bin gets the number as a binary string
+                #   [2:] removes the leaving "0b", as all values will be positive
+                #   zfill adds the required amount of leading 0's, so color[-color_bits_changed:] works
                 color = list(bin(img.item(y, x, channel))[2:].zfill(color_bits_changed))
-                #################
+                # Appends the binary_list with the bits stored in the color value
                 binary_list.append("".join(color[-color_bits_changed:]))
                 if values_found == binary_values_to_look_for:
                     return "".join(binary_list)
@@ -63,8 +74,11 @@ def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_chang
 
 
 def get_text_from_binary(binary, bits_per_char):
+    # Gets the character binary values in a list
     char_binary_values = [binary[i:i+bits_per_char] for i in range(0, len(binary), bits_per_char)]
+    # Converts the binary values to base 10 integers, and then to characters
     chars = [chr(int(b, 2)) for b in char_binary_values]
+    # Joins characters and returns them as the text
     text = "".join(chars)
     return text
 
