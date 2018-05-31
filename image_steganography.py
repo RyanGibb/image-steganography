@@ -4,6 +4,7 @@ import cv2
 def conceal_text_in_img(input_path, output_path, text, color_bits_changed=1):
     binary = get_binary_from_text(text)
     img = cv2.imread(input_path)
+    print("Image capacity: " + bit_format(get_image_capcity(img, color_bits_changed)))
     img = conceal_binary_in_image(img, binary, color_bits_changed)
     cv2.imwrite(output_path, img)
 
@@ -18,6 +19,8 @@ def get_binary_from_text(text):
     print("Bits per character: " + str(bits_per_char))
     # zfill adds leading zeros if the binary number is the wrong length, and they are joined to give a continuous string
     binary = "".join([b.zfill(bits_per_char) for b in array_of_char_binary_values])
+    text_size = len(text) * bits_per_char
+    print("Text size: " + bit_format(text_size))
     return binary
 
 
@@ -40,15 +43,25 @@ def conceal_binary_in_image(img, binary, color_bits_changed):
                 new_color = int("".join(color), 2)
                 img.itemset(y, x, channel, new_color)
                 binary_index += color_bits_changed
-                if binary_index >= len(binary_list):
+                if binary_index > len(binary_list):
+                    image_capacity_left = (((height - y) * width - (x + 1)) * channels + channel) * color_bits_changed
+                    print("Space left in image: " + bit_format(image_capacity_left))
                     return img
+    bits_left = len(binary_list) - (binary_index + 1)
+    if bits_left == 0:
+        print("No space left in image")
+    else:
+        print("Not enough space in image. Discarded: " + bit_format(bits_left))
     return img
 
 
 def unconceal_text_in_image(input_path, chars_to_look_for=0, bits_per_char=8, color_bits_changed=1):
     img = cv2.imread(input_path)
     binary = unconceal_binary_in_image(img, chars_to_look_for * bits_per_char, color_bits_changed)
-    print(get_text_from_binary(binary, bits_per_char))
+    text = get_text_from_binary(binary, bits_per_char)
+    # replaces carriage returns with newlines for printing
+    text = text.replace('\r', '\n')
+    print(text)
 
 
 def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_changed=1):
@@ -75,7 +88,7 @@ def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_chang
 
 def get_text_from_binary(binary, bits_per_char):
     # Gets the character binary values in a list
-    char_binary_values = [binary[i:i+bits_per_char] for i in range(0, len(binary), bits_per_char)]
+    char_binary_values = [binary[i:i + bits_per_char] for i in range(0, len(binary), bits_per_char)]
     # Converts the binary values to base 10 integers, and then to characters
     chars = [chr(int(b, 2)) for b in char_binary_values]
     # Joins characters and returns them as the text
@@ -83,11 +96,30 @@ def get_text_from_binary(binary, bits_per_char):
     return text
 
 
-if __name__ == "__main__":
-    conceal_text_in_img("download.jpeg", "download.png", "William Shakespeare was an English poet, playwright and "
-                                                         "actor, widely regarded as both the greatest writer in the "
-                                                         "English language, and the world's pre-eminent dramatist. "
-                                                         "He is often called England's national poet, and the Bard of "
-                                                         "Avon.", 4)
-    unconceal_text_in_image("download.png", 100, 7, 4)
+def get_image_capcity(img, color_bits_changed=1):
+    height = img.shape[0]
+    width = img.shape[1]
+    channels = img.shape[2]
+    capacity = height * width * channels * color_bits_changed
+    return capacity
 
+
+# Source: https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+def bit_format(bits):
+    num_bytes = bits / 8.0
+    suffix = 'B'
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num_bytes) < 1024.0:
+            return "%3.1f%s%s (%s bits)" % (num_bytes, unit, suffix, bits)
+        num_bytes /= 1024.0
+    return "%.1f%s%s (%s bits)" % (num_bytes, 'Yi', suffix, bits)
+
+
+if __name__ == "__main__":
+    conceal_text_in_img("download.jpeg", "download.png",
+                        "William Shakespeare was an English poet, playwright and "
+                        "actor, widely regarded as both the greatest writer in the "
+                        "English language, and the world's pre-eminent dramatist. "
+                        "He is often called England's national poet, and the Bard of "
+                        "Avon.", 1)
+    unconceal_text_in_image("download.png", 600, 7, 1)
