@@ -39,30 +39,8 @@ def conceal_binary_in_image(img, binary, color_bits_changed):
 
 def unconceal_text_in_image(input_path, chars_to_look_for=0, bits_per_char=8, color_bits_changed=1):
     img = cv2.imread(input_path)
-    char_binary_list = []
-    char_index = 0
-    # Starts at 1 so if characters_to_look_for=0, all the characters are found
-    chars_found = 1
-    height = img.shape[0]
-    width = img.shape[1]
-    channels = img.shape[2]
-    for y in range(height):
-        for x in range(width):
-            for channel in range(channels):
-                color = list(bin(img.item(y, x, channel))[2:].zfill(color_bits_changed))
-                char_binary_list += color[-color_bits_changed:]
-                if chars_found == chars_to_look_for:
-                    return
-                char_index += 1
-                if char_index % bits_per_char == 0:
-                    chars_found += 1
-                    char_int = int("".join(char_binary_list), 2)
-                    char = chr(char_int)
-                    if char == "\r":
-                        print("\\r")
-                    else:
-                        print(char, end='')
-                    char_binary_list = []
+    binary = unconceal_binary_in_image(img, chars_to_look_for * bits_per_char)
+    print(get_text_from_binary(binary, bits_per_char))
 
 
 def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_changed=1):
