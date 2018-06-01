@@ -13,17 +13,15 @@ def conceal_text_in_image(input_path, output_path, text, color_bits_changed=1):
 def unconceal_text_in_image(input_path, chars_to_look_for=0, bits_per_char=8, color_bits_changed=1):
     img = cv2.imread(input_path)
     number_of_bits = chars_to_look_for * bits_per_char
-    binary = unconceal_binary_from_image(img, number_of_bits, color_bits_changed)
+    binary = unconceal_binary_in_image(img, number_of_bits, color_bits_changed)
     text = get_text_from_binary(binary, bits_per_char)
     # replaces carriage returns with newlines for printing
     text = text.replace('\r', '\n')
     print(text)
 
 
-def conceal_image_in_image(input_path, output_path, image_to_conceal_path, color_bits_changed=1):
-    img_to_conceal = cv2.imread(image_to_conceal_path)
-    print("Image to conceal:\n\tHeight: %s\tWidth: %s\tColor Channels: %s" % tuple(img_to_conceal.shape))
-    binary = get_binary_from_image(image_to_conceal_path)
+def conceal_file_in_image(input_path, output_path, file_path, color_bits_changed=1):
+    binary = get_binary_from_file(file_path)
     print("\tSize: " + bit_format(len(binary)))
     img = cv2.imread(input_path)
     print("Image capacity: " + bit_format(get_image_capcity(img, color_bits_changed)))
@@ -31,10 +29,10 @@ def conceal_image_in_image(input_path, output_path, image_to_conceal_path, color
     cv2.imwrite(output_path, img)
 
 
-def unconceal_image_in_image(input_path, output_path, number_of_bits, color_bits_changed=1):
+def unconceal_file_in_image(input_path, output_path, number_of_bits, color_bits_changed=1):
     img = cv2.imread(input_path)
-    binary = unconceal_binary_from_image(img, number_of_bits, color_bits_changed)
-    get_image_from_binary(binary, output_path)
+    binary = unconceal_binary_in_image(img, number_of_bits, color_bits_changed)
+    get_file_from_binary(binary, output_path)
 
 
 def conceal_binary_in_image(img, binary, color_bits_changed):
@@ -68,7 +66,7 @@ def conceal_binary_in_image(img, binary, color_bits_changed):
     return img
 
 
-def unconceal_binary_from_image(img, binary_values_to_look_for=0, color_bits_changed=1):
+def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_changed=1):
     # Starts at 1 so if binary_values_to_look_for=0 (the default) all the binary values are returned
     values_found = 1
     binary_list = []
@@ -90,7 +88,7 @@ def unconceal_binary_from_image(img, binary_values_to_look_for=0, color_bits_cha
     return "".join(binary_list)
 
 
-def get_binary_from_image(path):
+def get_binary_from_file(path):
     with open(path, "rb") as f:
         bytes = f.read()
     binary_array = [bin(i)[2:].zfill(8) for i in bytes]
@@ -98,7 +96,7 @@ def get_binary_from_image(path):
     return binary
 
 
-def get_image_from_binary(binary, path):
+def get_file_from_binary(binary, path):
     bits_per_byte = 8
     binary_array = [binary[i:i+bits_per_byte] for i in range(0, len(binary), bits_per_byte)]
     int_array = [int(b, 2) for b in binary_array]
@@ -161,8 +159,8 @@ def test_conceal_text_in_image():
 
 
 def test_conceal_image_in_image():
-    conceal_image_in_image("kingfishers.jpg", "kingfishers-output.png", "download.jpeg", 1)
-    unconceal_image_in_image("kingfishers-output.png", "download-unconcealed.jpeg", 5440, 1)
+    conceal_file_in_image("kingfishers.jpg", "kingfishers-output.png", "download.jpeg", 1)
+    unconceal_file_in_image("kingfishers-output.png", "download-unconcealed.jpeg", 54400, 1)
 
 
 if __name__ == "__main__":
