@@ -1,27 +1,38 @@
 import cv2
 
 
-def conceal_text_in_img(input_path, output_path, text, color_bits_changed=1):
+def conceal_text_in_image(input_path, output_path, text, color_bits_changed=1):
     binary = get_binary_from_text(text)
+    print("Text size: " + bit_format(len(binary)))
     img = cv2.imread(input_path)
     print("Image capacity: " + bit_format(get_image_capcity(img, color_bits_changed)))
     img = conceal_binary_in_image(img, binary, color_bits_changed)
     cv2.imwrite(output_path, img)
 
 
-def get_binary_from_text(text):
-    print("Number of characters: " + str(len(text)))
-    # Converts the text into a list of binary values. ord gets the unicode value, bin gets the number as a binary string
-    #   [2:] removes the "0b" from the start of the number, which is done as all of the numbers will be positive
-    array_of_char_binary_values = [bin(ord(c))[2:] for c in text]
-    # Sets the number of bits per character to the length of the longest binary number
-    bits_per_char = len(max(array_of_char_binary_values, key=len))
-    print("Bits per character: " + str(bits_per_char))
-    # zfill adds leading zeros if the binary number is the wrong length, and they are joined to give a continuous string
-    binary = "".join([b.zfill(bits_per_char) for b in array_of_char_binary_values])
-    text_size = len(text) * bits_per_char
-    print("Text size: " + bit_format(text_size))
-    return binary
+def unconceal_text_in_image(input_path, chars_to_look_for=0, bits_per_char=8, color_bits_changed=1):
+    img = cv2.imread(input_path)
+    number_of_bits = chars_to_look_for * bits_per_char
+    binary = unconceal_binary_in_image(img, number_of_bits, color_bits_changed)
+    text = get_text_from_binary(binary, bits_per_char)
+    # replaces carriage returns with newlines for printing
+    text = text.replace('\r', '\n')
+    print(text)
+
+
+def conceal_file_in_image(input_path, output_path, file_path, color_bits_changed=1):
+    binary = get_binary_from_file(file_path)
+    print("\tSize: " + bit_format(len(binary)))
+    img = cv2.imread(input_path)
+    print("Image capacity: " + bit_format(get_image_capcity(img, color_bits_changed)))
+    img = conceal_binary_in_image(img, binary, color_bits_changed)
+    cv2.imwrite(output_path, img)
+
+
+def unconceal_file_in_image(input_path, output_path, number_of_bits, color_bits_changed=1):
+    img = cv2.imread(input_path)
+    binary = unconceal_binary_in_image(img, number_of_bits, color_bits_changed)
+    get_file_from_binary(binary, output_path)
 
 
 def conceal_binary_in_image(img, binary, color_bits_changed):
@@ -44,7 +55,7 @@ def conceal_binary_in_image(img, binary, color_bits_changed):
                 img.itemset(y, x, channel, new_color)
                 binary_index += color_bits_changed
                 if binary_index > len(binary_list):
-                    image_capacity_left = (((height - y) * width - (x + 1)) * channels + channel) * color_bits_changed
+                    image_capacity_left = (((height - y) * width - (x + 1)) * channels + (channel + 1)) * color_bits_changed
                     print("Space left in image: " + bit_format(image_capacity_left))
                     return img
     bits_left = len(binary_list) - (binary_index + 1)
@@ -53,15 +64,6 @@ def conceal_binary_in_image(img, binary, color_bits_changed):
     else:
         print("Not enough space in image. Discarded: " + bit_format(bits_left))
     return img
-
-
-def unconceal_text_in_image(input_path, chars_to_look_for=0, bits_per_char=8, color_bits_changed=1):
-    img = cv2.imread(input_path)
-    binary = unconceal_binary_in_image(img, chars_to_look_for * bits_per_char, color_bits_changed)
-    text = get_text_from_binary(binary, bits_per_char)
-    # replaces carriage returns with newlines for printing
-    text = text.replace('\r', '\n')
-    print(text)
 
 
 def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_changed=1):
@@ -84,6 +86,37 @@ def unconceal_binary_in_image(img, binary_values_to_look_for=0, color_bits_chang
                     return "".join(binary_list)
                 values_found += 1
     return "".join(binary_list)
+
+
+def get_binary_from_file(path):
+    with open(path, "rb") as f:
+        bytes = f.read()
+    binary_array = [bin(i)[2:].zfill(8) for i in bytes]
+    binary = "".join(binary_array)
+    return binary
+
+
+def get_file_from_binary(binary, path):
+    bits_per_byte = 8
+    binary_array = [binary[i:i+bits_per_byte] for i in range(0, len(binary), bits_per_byte)]
+    int_array = [int(b, 2) for b in binary_array]
+    bytes = bytearray(int_array)
+    with open(path, "wb") as f:
+        f.write(bytes)
+
+
+def get_binary_from_text(text):
+    print("Number of characters: " + str(len(text)))
+    # Converts the text into a list of binary values. ord gets the unicode value, bin gets the number as a binary string
+    #   [2:] removes the "0b" from the start of the number, which is done as all of the numbers will be positive
+    array_of_char_binary_values = [bin(ord(c))[2:] for c in text]
+    # Sets the number of bits per character to the length of the longest binary number
+    bits_per_char = len(max(array_of_char_binary_values, key=len))
+    print("Bits per character: " + str(bits_per_char))
+    # zfill adds leading zeros if the binary number is the wrong length, and they are joined to give a continuous string
+    binary = "".join([b.zfill(bits_per_char) for b in array_of_char_binary_values])
+    text_size = len(text) * bits_per_char
+    return binary
 
 
 def get_text_from_binary(binary, bits_per_char):
@@ -115,11 +148,23 @@ def bit_format(bits):
     return "%.1f%s%s (%s bits)" % (num_bytes, 'Yi', suffix, bits)
 
 
+def test_conceal_text_in_image():
+    conceal_text_in_image("download.jpeg", "download-output.png",
+                          "William Shakespeare was an English poet, playwright and "
+                          "actor, widely regarded as both the greatest writer in the "
+                          "English language, and the world's pre-eminent dramatist. "
+                          "He is often called England's national poet, and the Bard of "
+                          "Avon.", 3)
+    unconceal_text_in_image("download-output.png", 400, 7, 3)
+
+
+def test_conceal_image_in_image():
+    conceal_file_in_image("kingfishers.jpg", "kingfishers-output.png", "download.jpeg", 1)
+    unconceal_file_in_image("kingfishers-output.png", "download-unconcealed.jpeg", 54400, 1)
+
+
 if __name__ == "__main__":
-    conceal_text_in_img("download.jpeg", "download.png",
-                        "William Shakespeare was an English poet, playwright and "
-                        "actor, widely regarded as both the greatest writer in the "
-                        "English language, and the world's pre-eminent dramatist. "
-                        "He is often called England's national poet, and the Bard of "
-                        "Avon.", 1)
-    unconceal_text_in_image("download.png", 600, 7, 1)
+    test_conceal_text_in_image()
+    test_conceal_image_in_image()
+
+
