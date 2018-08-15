@@ -147,22 +147,6 @@ def bit_format(bits):
         num_bytes /= 1024.0
     return "%.1f%s%s (%s bits)" % (num_bytes, 'Yi', suffix, bits)
 
-
-def test_conceal_text_in_image():
-    conceal_text_in_image("download.jpeg", "download-output.png",
-                          "William Shakespeare was an English poet, playwright and "
-                          "actor, widely regarded as both the greatest writer in the "
-                          "English language, and the world's pre-eminent dramatist. "
-                          "He is often called England's national poet, and the Bard of "
-                          "Avon.", 3)
-    unconceal_text_in_image("download-output.png", 400, 7, 3)
-
-
-def test_conceal_image_in_image():
-    conceal_file_in_image("kingfishers.jpg", "kingfishers-output.png", "download.jpeg", 1)
-    unconceal_file_in_image("kingfishers-output.png", "download-unconcealed.jpeg", 54400, 1)
-
-
 if __name__ == "__main__":
     test_conceal_text_in_image()
     test_conceal_image_in_image()
