@@ -146,9 +146,3 @@ def bit_format(bits):
             return "%3.1f%s%s (%s bits)" % (num_bytes, unit, suffix, bits)
         num_bytes /= 1024.0
     return "%.1f%s%s (%s bits)" % (num_bytes, 'Yi', suffix, bits)
-
-if __name__ == "__main__":
-    test_conceal_text_in_image()
-    test_conceal_image_in_image()
-
-
