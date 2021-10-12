@@ -12,7 +12,7 @@ Functions of interest to the end user:
  * conceal_file_in_image
  * unconceal_file_in_image
 
-#Examples
+# Examples
 
 ## Setup
 ```
